@@ -38,9 +38,7 @@ def is_digit_adjacent_to_symbol(df: pd.DataFrame, row_index: int, col_index: int
     # a digit is adjacent to a symbol if it is adjacent to a symbol in any of the 8 directions
     # 8 directions: up, down, left, right, up-left, up-right, down-left, down-right
     # if any of the 8 directions is out of bounds, it is not adjacent to a symbol
-
-    # up
-    result =  is_symbol(df, row_index - 1, col_index) \
+    return is_symbol(df, row_index - 1, col_index) \
         or is_symbol(df, row_index + 1, col_index) \
         or is_symbol(df, row_index, col_index - 1) \
         or is_symbol(df, row_index, col_index + 1) \
@@ -49,8 +47,6 @@ def is_digit_adjacent_to_symbol(df: pd.DataFrame, row_index: int, col_index: int
         or is_symbol(df, row_index + 1, col_index - 1) \
         or is_symbol(df, row_index + 1, col_index + 1)
 
-    #print (row_index, " ", col_index, " is_digit_adjacent_to_symbol result ", result)
-    return result
 
 def test_is_digit_adjacent_to_symbol():
     test_df = parse_text_into_df(test_matrix)
@@ -66,7 +62,6 @@ def test_is_digit_adjacent_to_symbol():
 
 
 def is_part_number(df: pd.DataFrame, rowIndex: int, start: int, end: int) -> bool:
-    #print ("is_part_number", rowIndex, start, end)
     # a number is a part number if any of its digits is adjacent to a symbol
     # why doesn't this get called for range(4, 4)?
     # this was the version written by CoPilot. CoPilot doesn't know that the upper part of the range is exclusive.
@@ -82,7 +77,12 @@ def test_is_part_number():
     assert is_part_number(test_df, 3, 3, 3) == True
 
 
-def find_summed_part_numbers(df):
+def find_summed_part_numbers(df) -> int:
+
+    def add_digit_to_sum(prev_sum, row_index, current_digit_start, current_digit_end, current_digit) -> int:
+        if is_part_number(df, row_index, current_digit_start, current_digit_end):
+            prev_sum += int(current_digit)
+        return prev_sum
 
     sum_part_numbers = 0
 
@@ -105,19 +105,16 @@ def find_summed_part_numbers(df):
             else:
                 if scanning_digit:
                     # finish scanning digit and process it
-                    # (also need to do this at end of loop if we were still scanning)
-                    if is_part_number(df, row_index, current_digit_start, col_index - 1):
-                        sum_part_numbers += int(current_digit)
-                        #print(current_digit)
+                    sum_part_numbers = add_digit_to_sum(sum_part_numbers, row_index, current_digit_start, col_index - 1,
+                                                        current_digit)
                     scanning_digit = False
 
             col_index += 1
 
             # if we got to the end of the row and we were still scanning a digit, process it
             if col_index == df.shape[1] and scanning_digit:
-                if is_part_number(df, row_index, current_digit_start, col_index - 1):
-                    sum_part_numbers += int(current_digit)
-                    #print(current_digit)
+                sum_part_numbers = add_digit_to_sum(sum_part_numbers, row_index, current_digit_start, col_index - 1,
+                                                    current_digit)
                 scanning_digit = False
 
     return sum_part_numbers
@@ -150,7 +147,7 @@ def test_parse_parse_text_into_df():
     assert df.iloc[1, 2] == '.'
     assert df.iloc[1, 3] == '*'
     assert df.iloc[1, 4] == '.'
-    # first two rows enough for parsing purposes
+    # first two rows enough for purpose of testing parsing
 
 def test_integration():
     text = """............409..........784...578...802......64..............................486.248..............177....................369...............
